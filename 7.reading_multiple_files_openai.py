@@ -9,10 +9,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import TextLoader, PyPDFLoader, UnstructuredWordDocumentLoader
 from langchain.chains import RetrievalQA
 from langchain.schema import Document
-
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.embeddings import OpenAIEmbeddings
+import data_info
 # --------- Config ---------
 DATA_DIR = "data"  # Directory containing your files
 CHROMA_PERSIST_DIR = "chroma_store_multiple_document"
+
+
+LLM_MODEL = "gpt-4o-mini"  # or "gpt-4"
+OPENAI_API_KEY = data_info.open_ai_key # Replace this with your open ai key "SK-"
 
 # --------- Helper function to load documents ---------
 def load_documents_from_directory(directory):
@@ -40,9 +46,10 @@ raw_docs = load_documents_from_directory(DATA_DIR)
 splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 docs = splitter.split_documents(raw_docs)
 
-# --------- Initialize Embedding ---------
-print("[INFO] Generating embeddings using mxbai-embed-large...")
-embedding_model = OllamaEmbeddings(model="mxbai-embed-large")
+# --------- Initialize Embeddings ---------
+EMBED_MODEL = "text-embedding-3-small"
+print(f"[INFO] Using OpenAI Embeddings: {EMBED_MODEL}")
+embedding_model = OpenAIEmbeddings(model=EMBED_MODEL,openai_api_key=OPENAI_API_KEY)
 
 # --------- Create / Load Vector Store ---------
 if os.path.exists(CHROMA_PERSIST_DIR):
@@ -54,8 +61,9 @@ else:
     vectordb.persist()
 
 # --------- Load LLM ---------
-print("[INFO] Loading gemma:3b model via Ollama...")
-llm = Ollama(model="gemma3:1b")
+# --------- Initialize LLM ---------
+print(f"[INFO] Using OpenAI LLM: {LLM_MODEL}")
+llm = ChatOpenAI(model_name=LLM_MODEL, temperature=0,openai_api_key=OPENAI_API_KEY)
 
 # --------- Setup RetrievalQA ---------
 qa_chain = RetrievalQA.from_chain_type(
